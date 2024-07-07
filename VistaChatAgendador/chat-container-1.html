@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Agendador con Irina</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-section">
+        <!-- <img src="LogoLetrasBlancasSinFondo.png" alt="Logo" class="logo"> -->
+        <h1 class="title">Chat</h1>
+    </div>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-content">
+                <div class="profile-picture">
+                    <img src="emilio.jpeg" alt="Profile Picture">
+                </div>
+                <h2>Irina IA</h2>
+                <button type="button" class="btn-clear" onclick="resetConversation(chat_id)">Limpiar</button>
+            </div>
+        </div>
+        <div id="apiResponse" class="chat-messages"></div>
+        <form id="promptForm" class="chat-form">
+            <textarea class="form-control" id="prompt" placeholder="Escríbeme tu mensaje" rows="1"></textarea>
+            <button id="btnToggle" type="button">
+                <i class="fas fa-microphone"></i>
+            </button>
+            
+            <button type="submit" class="btn-send" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+    
+    <script src="simulated_script_2.js"></script>
+    <script src="funciones.js"></script>
+</body>
+</html>
