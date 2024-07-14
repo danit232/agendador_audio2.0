@@ -11,11 +11,10 @@ function inicializarChat(chat_id) {
     if (promptForm) {
         promptForm.addEventListener("submit", (event) => handleFormSubmit(event, chat_id));
 
-        // Prevenir que el formulario se envíe con la tecla Enter, pero llamar a sendMessage directamente
         promptForm.addEventListener("keydown", function (event) {
             if (event.key === "Enter") {
-                event.preventDefault(); // Prevenir el comportamiento predeterminado de la tecla Enter
-                sendMessage(chat_id); // Llamar a la función de enviar mensaje
+                event.preventDefault();
+                sendMessage(chat_id);
             }
         });
     } else {
@@ -74,13 +73,22 @@ function renderConversationHistory(chat_id) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-US';
     
-            // Cambiar la voz aquí
             const voices = speechSynthesis.getVoices();
-            const selectedVoice = voices.find(voice => voice.name === 'es-US-Neural2-A'); // Puedes cambiar 'Google español' por el nombre de la voz deseada
+            const selectedVoice = voices.find(voice => voice.name === 'es-US-Neural2-A');
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
             }
     
+            const profileBubble = document.getElementById('profileBubble');
+
+            utterance.onstart = function(event) {
+                profileBubble.classList.add('speaking');
+            };
+
+            utterance.onend = function(event) {
+                profileBubble.classList.remove('speaking');
+            };
+
             speechSynthesis.speak(utterance);
         } else {
             console.log('Text-to-speech not supported in this browser.');
@@ -92,7 +100,6 @@ function renderConversationHistory(chat_id) {
         console.log(voice.name, voice.lang);
     });
 
-    
     document.getElementById(`sendButton`).addEventListener('click', function () {
         sendMessage(chat_id);
     });
@@ -202,22 +209,22 @@ function sendMessage(chat_id) {
         },
         body: JSON.stringify(dataToSend)
     })
-        .then(response => response.json())
-        .then(data => {
-            clearInterval(writingInterval);
-            conversations[chat_id].splice(writingIndex, 1);
-            if (!conversations[chat_id].find(m => m.content === data.response)) {
-                conversations[chat_id].push({ role: "assistant", content: data.response });
-            }
-            renderConversationHistory(chat_id);
-        })
-        .catch((error) => {
-            clearInterval(writingInterval);
-            console.error('Error:', error);
-            conversations[chat_id].splice(writingIndex, 1);
-            conversations[chat_id].push({ role: "assistant", content: `Error: ${error}` });
-            renderConversationHistory(chat_id);
-        });
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(writingInterval);
+        conversations[chat_id].splice(writingIndex, 1);
+        if (!conversations[chat_id].find(m => m.content === data.response)) {
+            conversations[chat_id].push({ role: "assistant", content: data.response });
+        }
+        renderConversationHistory(chat_id);
+    })
+    .catch((error) => {
+        clearInterval(writingInterval);
+        console.error('Error:', error);
+        conversations[chat_id].splice(writingIndex, 1);
+        conversations[chat_id].push({ role: "assistant", content: `Error: ${error}` });
+        renderConversationHistory(chat_id);
+    });
 }
 
 function findElementByClassAndDataChatNumber(className, dataChatNumber) {
