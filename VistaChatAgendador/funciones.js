@@ -149,7 +149,9 @@ function renderConversationHistory(chat_id) {
     let isRecording = false;
     let finalTranscript = '';
     let silenceTimer;
-    const silenceThreshold = 1500; // 1.5 segundos de silencio
+    const silenceThreshold = 3000; // 1.5 segundos de silencio
+    const sendDelay = 500; // 0.5 segundos de espera antes de enviar
+
 
     btnToggle.addEventListener('click', () => {
         if (isRecording) {
@@ -173,10 +175,14 @@ function renderConversationHistory(chat_id) {
         btnToggle.classList.remove('active');
         userWaveContainer.classList.remove('speaking');
         isRecording = false;
-        textArea.value = finalTranscript.trim();
-        if (textArea.value) {
-            sendMessage(chat_id);
-        }
+        
+        // Esperar un poco antes de enviar el mensaje
+        setTimeout(() => {
+            textArea.value = finalTranscript.trim();
+            if (textArea.value) {
+                sendMessage(chat_id);
+            }
+        }, sendDelay);
     }
 
     function resetSilenceTimer() {
@@ -202,6 +208,7 @@ function renderConversationHistory(chat_id) {
         resetSilenceTimer();
     };
 
+
     recognition.onaudiostart = () => {
         resetSilenceTimer();
     };
@@ -213,8 +220,15 @@ function renderConversationHistory(chat_id) {
     recognition.onend = () => {
         if (isRecording) {
             recognition.start();
+        } else {
+            setTimeout(() => {
+                if (textArea.value.trim()) {
+                    sendMessage(chat_id);
+                }
+            }, sendDelay);
         }
     };
+
 
     let conversationElement = findElementByClassAndDataChatNumber('chat-messages', chat_id);
     if (conversationElement) {
