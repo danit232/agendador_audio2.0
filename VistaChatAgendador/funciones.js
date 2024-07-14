@@ -147,6 +147,9 @@ function renderConversationHistory(chat_id) {
     recognition.interimResults = false;
 
     let isRecording = false;
+    let finalTranscript = '';
+    let silenceTimer;
+    const silenceThreshold = 1500; // 1.5 segundos de silencio
 
     btnToggle.addEventListener('click', () => {
         if (isRecording) {
@@ -161,21 +164,58 @@ function renderConversationHistory(chat_id) {
         btnToggle.classList.add('active');
         userWaveContainer.classList.add('speaking');
         isRecording = true;
+        finalTranscript = '';
     }
+
 
     function stopRecording() {
         recognition.stop();
         btnToggle.classList.remove('active');
         userWaveContainer.classList.remove('speaking');
         isRecording = false;
-        sendMessage(chat_id);
+        textArea.value = finalTranscript.trim();
+        if (textArea.value) {
+            sendMessage(chat_id);
+        }
+    }
+
+    function resetSilenceTimer() {
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (isRecording) {
+                stopRecording();
+            }
+        }, silenceThreshold);
     }
 
     recognition.onresult = (event) => {
-        const texto = event.results[event.results.length - 1][0].transcript;
-        textArea.value += texto + ' ';
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        textArea.value = finalTranscript + interimTranscript;
+        resetSilenceTimer();
     };
-    
+
+    recognition.onaudiostart = () => {
+        resetSilenceTimer();
+    };
+
+    recognition.onaudioend = () => {
+        clearTimeout(silenceTimer);
+    };
+
+    recognition.onend = () => {
+        if (isRecording) {
+            recognition.start();
+        }
+    };
+
     let conversationElement = findElementByClassAndDataChatNumber('chat-messages', chat_id);
     if (conversationElement) {
         conversationElement.innerHTML = '';
