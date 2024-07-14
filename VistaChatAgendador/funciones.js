@@ -56,10 +56,42 @@ function cargarChat(id, training_prompt) {
                 console.log('Elemento no encontrado.');
             }
             renderConversationHistory(chat_id);
+
+            // Add toggle functionality here
+            const toggleHistoryBtn = document.getElementById('toggleHistory');
+            const chatHistory = document.getElementById('chatHistory');
+
+            console.log("Toggle button:", toggleHistoryBtn);
+            console.log("Chat history:", chatHistory);
+
+            if (toggleHistoryBtn && chatHistory) {
+                toggleHistoryBtn.addEventListener('click', function() {
+                    console.log("Toggle button clicked");
+                    chatHistory.classList.toggle('show');
+                    
+                    if (chatHistory.classList.contains('show')) {
+                        chatHistory.style.display = 'block';
+                        setTimeout(() => chatHistory.classList.add('show'), 500);
+                        toggleHistoryBtn.textContent = 'Ocultar historial';
+                    } else {
+                        chatHistory.classList.remove('show');
+                        setTimeout(() => chatHistory.style.display = 'none', 500);
+                        toggleHistoryBtn.textContent = 'Mostrar historial';
+                    }
+                });
+            } else {
+                console.error("Toggle button or chat history not found");
+            }
         })
         .catch(error => console.error('Error al cargar el chat:', error));
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOM fully loaded");
+
+    cargarChat('1', training_prompt);
+    cargarChat('2', training_prompt);
+});
 function addDataChatNumber(container, chat_id) {
     const elements = container.querySelectorAll('*');
     elements.forEach(element => {
@@ -106,6 +138,8 @@ function renderConversationHistory(chat_id) {
 
     const btnToggle = document.getElementById(`btnToggle`);
     const textArea = findElementByClassAndDataChatNumber('form-control', chat_id);
+    const userWaveContainer = document.querySelector('.user-wave-container');
+
 
     const recognition = new webkitSpeechRecognition();
     recognition.continuous = true;
@@ -125,12 +159,14 @@ function renderConversationHistory(chat_id) {
     function startRecording() {
         recognition.start();
         btnToggle.classList.add('active');
+        userWaveContainer.classList.add('speaking');
         isRecording = true;
     }
 
     function stopRecording() {
         recognition.stop();
         btnToggle.classList.remove('active');
+        userWaveContainer.classList.remove('speaking');
         isRecording = false;
         sendMessage(chat_id);
     }
@@ -238,6 +274,8 @@ const URL_BASE = "http://127.0.0.1:8000/chatgpt";
 const training_prompt = `Eres Emilio Einstein, una mezcla entre un matemático puro y Albert`;
 
 document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOM fully loaded");
+
     cargarChat('1', training_prompt);
     cargarChat('2', training_prompt);
 });
