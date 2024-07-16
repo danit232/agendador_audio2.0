@@ -10,13 +10,6 @@ function inicializarChat(chat_id) {
     console.log("Formulario encontrado:", promptForm);
     if (promptForm) {
         promptForm.addEventListener("submit", (event) => handleFormSubmit(event, chat_id));
-
-        promptForm.addEventListener("keydown", function (event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                sendMessage(chat_id);
-            }
-        });
     } else {
         console.error("El formulario 'promptForm' no se encontró en el DOM.");
     }
@@ -31,7 +24,7 @@ function inicializarChat(chat_id) {
 }
 
 function cargarChat(id, training_prompt) {
-    const url = `chat-container-${id}.html`
+    const url = `chat-container-${id}.html`;
     var chat_id = id;
 
     conversations[chat_id] = [
@@ -65,10 +58,10 @@ function cargarChat(id, training_prompt) {
             console.log("Chat history:", chatHistory);
 
             if (toggleHistoryBtn && chatHistory) {
-                toggleHistoryBtn.addEventListener('click', function() {
+                toggleHistoryBtn.addEventListener('click', function () {
                     console.log("Toggle button clicked");
                     chatHistory.classList.toggle('show');
-                    
+
                     if (chatHistory.classList.contains('show')) {
                         chatHistory.style.display = 'block';
                         setTimeout(() => chatHistory.classList.add('show'), 500);
@@ -92,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
     cargarChat('1', training_prompt);
     cargarChat('2', training_prompt);
 });
+
 function addDataChatNumber(container, chat_id) {
     const elements = container.querySelectorAll('*');
     elements.forEach(element => {
@@ -104,34 +98,30 @@ function renderConversationHistory(chat_id) {
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'es-US';
-    
+
             const voices = speechSynthesis.getVoices();
             const selectedVoice = voices.find(voice => voice.name === 'es-US-Neural2-A');
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
             }
-    
-            const profileBubble = document.getElementById('profileBubble');
 
-            utterance.onstart = function(event) {
+            const profileBubble = document.getElementById('profileBubble');
+            utterance.onstart = function (event) {
                 profileBubble.classList.add('speaking');
             };
-
-            utterance.onend = function(event) {
+            utterance.onend = function (event) {
                 profileBubble.classList.remove('speaking');
             };
-
             speechSynthesis.speak(utterance);
         } else {
             console.log('Text-to-speech not supported in this browser.');
         }
     }
-    
+
     const voices = speechSynthesis.getVoices();
     voices.forEach(voice => {
         console.log(voice.name, voice.lang);
     });
-
     document.getElementById(`sendButton`).addEventListener('click', function () {
         sendMessage(chat_id);
     });
@@ -140,22 +130,20 @@ function renderConversationHistory(chat_id) {
     const textArea = findElementByClassAndDataChatNumber('form-control', chat_id);
     const userWaveContainer = document.querySelector('.user-wave-container');
 
-
     const recognition = new webkitSpeechRecognition();
     recognition.continuous = true;
     recognition.lang = 'es-ES';
-    recognition.interimResults = false;
-
+    recognition.interimResults = true;  // Usar resultados intermedios
     let isRecording = false;
-    let finalTranscript = '';
+
     let silenceTimer;
-    const silenceThreshold = 3000; // 1.5 segundos de silencio
-    const sendDelay = 500; // 0.5 segundos de espera antes de enviar
+    const silenceThreshold = 1500; // 1.5 seconds of silence
 
 
     btnToggle.addEventListener('click', () => {
         if (isRecording) {
             stopRecording();
+            sendMessage(chat_id);
         } else {
             startRecording();
         }
@@ -166,69 +154,57 @@ function renderConversationHistory(chat_id) {
         btnToggle.classList.add('active');
         userWaveContainer.classList.add('speaking');
         isRecording = true;
-        finalTranscript = '';
     }
-
 
     function stopRecording() {
         recognition.stop();
         btnToggle.classList.remove('active');
         userWaveContainer.classList.remove('speaking');
         isRecording = false;
-        
-        // Esperar un poco antes de enviar el mensaje
-        setTimeout(() => {
-            textArea.value = finalTranscript.trim();
-            if (textArea.value) {
-                sendMessage(chat_id);
-            }
-        }, sendDelay);
-    }
-
-    function resetSilenceTimer() {
         clearTimeout(silenceTimer);
-        silenceTimer = setTimeout(() => {
-            if (isRecording) {
-                stopRecording();
-            }
-        }, silenceThreshold);
     }
 
     recognition.onresult = (event) => {
         let interimTranscript = '';
+        let finalTranscript = '';
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-                finalTranscript += transcript + ' ';
+                finalTranscript += transcript;
             } else {
                 interimTranscript += transcript;
             }
         }
+
         textArea.value = finalTranscript + interimTranscript;
-        resetSilenceTimer();
-    };
 
-
-    recognition.onaudiostart = () => {
-        resetSilenceTimer();
-    };
-
-    recognition.onaudioend = () => {
+        // Reset silence timer
         clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (isRecording) {
+                stopRecording();
+                sendMessage(chat_id);
+            }
+        }, silenceThreshold);
     };
 
     recognition.onend = () => {
         if (isRecording) {
-            recognition.start();
-        } else {
-            setTimeout(() => {
-                if (textArea.value.trim()) {
-                    sendMessage(chat_id);
-                }
-            }, sendDelay);
+            stopRecording();
+            sendMessage(chat_id);
         }
     };
 
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        stopRecording();
+    };
+
+    recognition.onspeechend = () => {
+        stopRecording();
+        sendMessage(chat_id);  // Enviar el mensaje cuando se detecta un silencio
+    };
 
     let conversationElement = findElementByClassAndDataChatNumber('chat-messages', chat_id);
     if (conversationElement) {
@@ -236,35 +212,23 @@ function renderConversationHistory(chat_id) {
     } else {
         console.error("El elemento 'apiResponse' no se encontró en el DOM.");
     }
-
     conversations[chat_id].filter(message => message.role !== "system").forEach((message, index, array) => {
         let messageElement = document.createElement("div");
         messageElement.classList.add('message-bubble');
         messageElement.classList.add(message.role === "user" ? "user" : "assistant");
-
         if (message.content.startsWith("escribiendo")) {
             messageElement.classList.add("writing");
         }
-
         messageElement.innerText = message.content;
         conversationElement.appendChild(messageElement);
-
         if (index === array.length - 1 && message.role === "assistant" && !message.content.startsWith("escribiendo")) {
             speakText(message.content);
         }
     });
-
     let lastMessageElement = conversationElement.lastChild;
     if (lastMessageElement) {
         lastMessageElement.scrollIntoView({ behavior: 'smooth' });
     }
-}
-
-function resetConversation(chat_id) {
-    findElementByClassAndDataChatNumber('form-control', chat_id).value = '';
-    findElementByClassAndDataChatNumber('chat-messages', chat_id).innerHTML = '';
-    conversations[chat_id] = [{ role: "system", content: training_prompt }];
-    renderConversationHistory(chat_id);
 }
 
 function sendMessage(chat_id) {
@@ -299,22 +263,30 @@ function sendMessage(chat_id) {
         },
         body: JSON.stringify(dataToSend)
     })
-    .then(response => response.json())
-    .then(data => {
-        clearInterval(writingInterval);
-        conversations[chat_id].splice(writingIndex, 1);
-        if (!conversations[chat_id].find(m => m.content === data.response)) {
-            conversations[chat_id].push({ role: "assistant", content: data.response });
-        }
-        renderConversationHistory(chat_id);
-    })
-    .catch((error) => {
-        clearInterval(writingInterval);
-        console.error('Error:', error);
-        conversations[chat_id].splice(writingIndex, 1);
-        conversations[chat_id].push({ role: "assistant", content: `Error: ${error}` });
-        renderConversationHistory(chat_id);
-    });
+        .then(response => response.json())
+        .then(data => {
+            clearInterval(writingInterval);
+            conversations[chat_id].splice(writingIndex, 1);
+            if (!conversations[chat_id].find(m => m.content === data.response)) {
+                conversations[chat_id].push({ role: "assistant", content: data.response });
+            }
+            renderConversationHistory(chat_id);
+        })
+        .catch((error) => {
+            clearInterval(writingInterval);
+            console.error('Error:', error);
+            conversations[chat_id].splice(writingIndex, 1);
+            conversations[chat_id].push({ role: "assistant", content: `Error: ${error}` });
+            renderConversationHistory(chat_id);
+
+        });
+}
+
+function resetConversation(chat_id) {
+    findElementByClassAndDataChatNumber('form-control', chat_id).value = '';
+    findElementByClassAndDataChatNumber('chat-messages', chat_id).innerHTML = '';
+    conversations[chat_id] = [{ role: "system", content: training_prompt }];
+    renderConversationHistory(chat_id);
 }
 
 function findElementByClassAndDataChatNumber(className, dataChatNumber) {
